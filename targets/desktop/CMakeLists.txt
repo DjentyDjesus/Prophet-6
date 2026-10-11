@@ -1,12 +1,17 @@
-cmake_minimum_required(VERSION 3.20)
-project(Prophet6_Plugin VERSION 1.0.0 LANGUAGES C CXX)
+project(Prophet6_Plugin VERSION 1.1.0 LANGUAGES C CXX)
 
 # Fetch JUCE framework
 include(FetchContent)
+if(APPLE)
+    set(JUCE_TAG "8.0.6")
+else()
+    set(JUCE_TAG "7.0.12")
+endif()
+
 FetchContent_Declare(
     JUCE
     GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-    GIT_TAG 8.0.6
+    GIT_TAG ${JUCE_TAG}
     GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(JUCE)

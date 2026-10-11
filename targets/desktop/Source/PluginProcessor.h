@@ -75,6 +75,10 @@ public:
     [[nodiscard]] int getWriteDestination() const noexcept { return presetManager_.getWriteDestination(); }
     void setWriteDestination(int slot) noexcept { presetManager_.setWriteDestination(slot); }
 
+    juce::MidiKeyboardState& getKeyboardState() noexcept { return keyboardState_; }
+    SynthEngine& getSynthEngine() noexcept { return synth_; }
+    const SynthEngine& getSynthEngine() const noexcept { return synth_; }
+
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void updateParameters() noexcept;
@@ -83,6 +87,7 @@ private:
     void handleSustainPedal(int controllerValue) noexcept;
     void allNotesOff() noexcept;
 
+    juce::MidiKeyboardState keyboardState_;
     SynthEngine synth_;
     PresetManager presetManager_{};
 

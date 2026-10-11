@@ -115,20 +115,29 @@
     * Single-sample latency: **809.24 ns / sample** (**28.02x faster than real-time**) with 6 active voices + Dual FX active.
     * Target: < 2000 ns / sample (**PASSED**).
 
-### Phase 7: Cross-Platform CI/CD Packaging (Windows EXE & macOS DMG) ✅
-* **Status:** Complete & Published to GitHub.
-* **CI/CD Pipeline (`.github/workflows/ci.yml`):**
-  * **Windows Job (`windows-latest`):**
-    - Environment: MSVC Developer Command Prompt + Ninja.
-    - DSP Verification: Builds and executes `dsp_verification.exe` across 15 automated test sweeps.
-    - Targets: `Prophet6_Standalone` (`Prophet-6.exe`) and `Prophet6_VST3` (`Prophet-6.vst3`).
-    - Release Artifacts: `Prophet-6-Windows-EXE`, `Prophet-6-Windows-VST3`, and `Prophet-6-Windows-x64-Package`.
-  * **macOS Job (`macos-latest`):**
-    - Environment: Apple Clang + Ninja.
-    - DSP Verification: Builds and executes `dsp_verification` audio test suite.
-    - Targets: `Prophet6_Standalone` (`Prophet-6.app`) and `Prophet6_VST3` (`Prophet-6.vst3`).
-    - Packaging: Mountable Apple Disk Image (`Prophet-6-macOS.dmg`) created via native macOS `hdiutil` with drag-and-drop symlink to `/Applications`.
-    - Release Artifact: `Prophet-6-macOS-DMG`.
+### Phase 8: SoundTower UI Overhaul, Real-Time Visualizers, Virtual Keyboard & v1.1 Release ✅
+* **Status:** Complete, Verified & Tagged `v1.1`.
+* **SoundTower PlugSE Front Panel ($1200 \times 820\text{ px}$):**
+  * Hardware-accurate replica of the SoundTower Prophet-6 controller editor (`prop6 ref.png`).
+  * Inset LCD preset display, Clock/BPM subdivision dots, Arp/Seq controls, and brushed metallic Sequential badge.
+  * Reorganized grid: Dual VCOs, vintage Slop, Mixer, series 4-pole LPF and 2-pole HPF.
+  * Poly Mod matrix, Aftertouch routing, Dual Digital FX, Misc parameters, LFO, Distortion, and Unison/Glide.
+* **Real-Time Visualizers:**
+  * **Mini Oscillator Waveshapes ($40 \times 24\text{ px}$):** Continuous vector morphing from triangle to sawtooth to variable pulse width directly beside Osc 1 and Osc 2 shape knobs.
+  * **1-Wavelength Pitch-Synchronized CRT Oscilloscope:** Lock-free pre-effects circular audio tap (`preFxBuffer_` in `SynthEngine.hpp`) rendering a vintage phosphor green CRT trace windowed to exactly 1 fundamental wavelength.
+  * **Vector Graphical ADSR Envelopes:** Illuminated dynamic ADSR attack-decay-sustain-release curves for both Filter and Amplifier stages.
+* **Interactive Virtual Piano Keyboard & Performance Strip:**
+  * Full 6-octave virtual keyboard (`C1` through `C7`) hooked directly to `juce::MidiKeyboardState`.
+  * Vertical note velocity slider, spring-loaded pitch bend wheel (auto-returns to center), and friction modulation wheel.
+* **Signature Factory Presets (v1.1):**
+  * `031: Kid A Right Place` (Classic electric piano keys with woody sub-oscillator body)
+  * `032: Aloboi Dreamscape` (Lush warm ambient pad with shimmer plate reverb & tape delay)
+  * `033: The Veldt Pluck` (Crisp progressive house plucks inspired by deadmau5)
+* **Multi-Platform GitHub Release Workflow (`.github/workflows/release.yml`):**
+  * Automated builds on push to `main` and tags matching `v*`.
+  * Windows matrix: Packages Standalone `.exe` + `.vst3` into `Prophet-6-v1.1-Windows.zip`.
+  * macOS matrix: Universal Binary (`arm64` + `x86_64`) packaged into `Prophet-6-v1.1-macOS.dmg`.
+  * Tag-triggered release publishing with release notes and binaries attached.
 
 ---
 
@@ -136,16 +145,12 @@
 
 | Binary / Artifact | Location | Status |
 |---|---|---|
-| Desktop Standalone Executable | `bin/Prophet-6.exe` (9.87 MB) | Built & Verified |
-| VST3 Plugin Bundle | `bin/Prophet-6.vst3` (8.36 MB) | Built & Verified |
-| Offline DSP Verification Suite | `build/tests/dsp_verification.exe` | 15/15 Tests Passed |
-| GitHub Actions Windows EXE | `Prophet-6-Windows-EXE` | Automated CI Artifact |
-| GitHub Actions Windows VST3 | `Prophet-6-Windows-VST3` | Automated CI Artifact |
-| GitHub Actions macOS DMG | `Prophet-6-macOS-DMG` | Automated CI Artifact |
-| SysEx Roundtrip WAV | `test_sysex_roundtrip.wav` | 3.5s Bit-Exact SysEx Audio Verification |
-| User Bank Persistence WAV | `test_user_bank_persistence.wav` | 3.0s User Patch 105 Persistence Audio Verification |
-| Preset Recall WAV | `test_preset_recall.wav` | 6.0s Multi-Patch Audio Progression |
-| MIDI CC Mapping WAV | `test_midi_cc_mapping.wav` | 4.0s Automated CC Sweeps |
+| Desktop Standalone Executable | `build/targets/desktop/Prophet6_artefacts/Release/Standalone/Prophet-6.exe` | Built & Verified |
+| VST3 Plugin Bundle | `build/targets/desktop/Prophet6_artefacts/Release/VST3/Prophet-6.vst3` | Built & Verified |
+| Offline DSP Verification Suite | `build/tests/dsp_verification.exe` | 15/15 Tests Passed (817 ns/sample) |
+| Release Workflow | `.github/workflows/release.yml` | Multi-Platform v1.1 Release |
+| Windows Release Zip | `Prophet-6-v1.1-Windows.zip` | Standalone .exe + .vst3 |
+| macOS Release DMG | `Prophet-6-v1.1-macOS.dmg` | Universal Binary Standalone .app + .vst3 |
 
 ---
 

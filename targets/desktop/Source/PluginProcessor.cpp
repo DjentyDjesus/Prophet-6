@@ -508,6 +508,9 @@ void Prophet6AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
         synth_.setTransport(isPlayActive, 0.0);
     }
 
+    // Process Virtual Keyboard & External MIDI
+    keyboardState_.processNextMidiBuffer(midiMessages, 0, numSamples, true);
+
     // Process MIDI events
     for (const auto metadata : midiMessages) {
         const auto m = metadata.getMessage();

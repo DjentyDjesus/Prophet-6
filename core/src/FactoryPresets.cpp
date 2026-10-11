@@ -371,19 +371,71 @@ std::array<Preset, 100> createAllFactoryPresets() {
         bank[31] = p;
     }
     {
-        auto p = makeBase(32, "032: Hard Sync Pluck", PresetCategory::Keys);
-        p.params.osc1Shape = 0.5f; p.params.osc1Sync = true;
-        p.params.osc2Shape = 0.5f; p.params.osc2Octave = 1;
-        p.params.polyModFiltEnvAmt = 0.6f; p.params.polyModDestOsc1Freq = true;
-        p.params.filtAttack = 0.005f; p.params.filtDecay = 0.3f; p.params.filtSustain = 0.0f;
-        p.params.fx1Type = 1; p.params.fx1Mix = 0.35f;
+        auto p = makeBase(32, "032: Aloboi Dreamscape", PresetCategory::Pad);
+        p.params.osc1Shape = 0.50f; // Saw
+        p.params.osc1Level = 0.75f;
+        p.params.osc1SubLevel = 0.35f; // Deep sub-bass floor
+        p.params.osc2Shape = 0.10f; // Soft triangle
+        p.params.osc2FineTune = 0.06f; // +6 cents lush detune
+        p.params.osc2Octave = -1; // -1 Octave
+        p.params.osc2Level = 0.60f;
+        p.params.lpfCutoff = 1400.0f;
+        p.params.lpfResonance = 0.25f;
+        p.params.lpfEnvAmount = 0.40f;
+        p.params.lpfKbdTrack = 0.50f;
+        p.params.filtAttack = 0.080f; // 80ms soft swell
+        p.params.filtDecay = 2.50f;
+        p.params.filtSustain = 0.60f;
+        p.params.filtRelease = 1.80f;
+        p.params.ampAttack = 0.080f;
+        p.params.ampDecay = 2.50f;
+        p.params.ampSustain = 0.60f;
+        p.params.ampRelease = 1.80f;
+        p.params.slop = 0.65f; // Rich organic thermal slop
+        p.params.panSpread = 0.40f;
+        p.params.fxOn = true;
+        p.params.fx1Type = 1; // Tape Delay
+        p.params.fx1Param1 = 0.375f; // Dotted 8th
+        p.params.fx1Param2 = 0.40f;
+        p.params.fx1Mix = 0.35f;
+        p.params.fx2Type = 7; // Shimmer Plate Reverb
+        p.params.fx2Param1 = 0.70f; // 3.5s decay
+        p.params.fx2Param2 = 0.50f;
+        p.params.fx2Mix = 0.45f;
         bank[32] = p;
     }
     {
-        auto p = makeBase(33, "033: Digital Glass Keys", PresetCategory::Keys);
-        p.params.osc1Shape = 0.0f; p.params.osc2Shape = 0.0f; p.params.osc2Octave = 2;
-        p.params.polyModOsc2Amt = 0.4f; p.params.polyModDestOsc1Shape = true;
-        p.params.lpfCutoff = 6000.0f; p.params.fx2Type = 7; p.params.fx2Mix = 0.45f;
+        auto p = makeBase(33, "033: The Veldt Pluck", PresetCategory::Keys);
+        p.params.osc1Shape = 0.65f; // Pulse/Saw blend
+        p.params.osc1PulseWidth = 0.40f;
+        p.params.osc1Level = 0.75f;
+        p.params.osc2Shape = 0.50f; // Saw
+        p.params.osc2FineTune = 0.03f; // +3 cents detune
+        p.params.osc2Level = 0.70f;
+        p.params.noiseLevel = 0.0f;
+        p.params.lpfCutoff = 1200.0f;
+        p.params.lpfResonance = 0.38f;
+        p.params.lpfEnvAmount = 0.70f;
+        p.params.lpfVelocityAmount = 0.50f;
+        p.params.filtAttack = 0.001f; // 1ms instant punch
+        p.params.filtDecay = 0.380f; // 380ms pluck decay
+        p.params.filtSustain = 0.05f;
+        p.params.filtRelease = 0.20f;
+        p.params.ampAttack = 0.001f;
+        p.params.ampDecay = 0.500f;
+        p.params.ampSustain = 0.0f;
+        p.params.ampRelease = 0.25f;
+        p.params.slop = 0.25f;
+        p.params.distortion = 0.10f;
+        p.params.fxOn = true;
+        p.params.fx1Type = 0; // BBD Delay
+        p.params.fx1Param1 = 0.25f; // 1/8 note repeats
+        p.params.fx1Param2 = 0.45f;
+        p.params.fx1Mix = 0.30f;
+        p.params.fx2Type = 7; // Room/Plate Reverb
+        p.params.fx2Param1 = 0.30f;
+        p.params.fx2Param2 = 0.35f;
+        p.params.fx2Mix = 0.20f;
         bank[33] = p;
     }
     {

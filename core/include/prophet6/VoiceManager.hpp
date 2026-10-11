@@ -159,6 +159,20 @@ public:
         return count;
     }
 
+    [[nodiscard]] float getLowestActiveNoteFreq() const noexcept {
+        int lowestNote = 128;
+        for (const auto& v : voices_) {
+            if (v.isActive()) {
+                const int n = v.getNoteNumber();
+                if (n < lowestNote) lowestNote = n;
+            }
+        }
+        if (lowestNote <= 127) {
+            return midiNoteToFrequency(static_cast<float>(lowestNote));
+        }
+        return 110.0f; // Default 110 Hz (A2) if idle
+    }
+
 private:
     float sampleRate_ = DEFAULT_SAMPLE_RATE;
     std::array<Voice, NUM_VOICES> voices_{};

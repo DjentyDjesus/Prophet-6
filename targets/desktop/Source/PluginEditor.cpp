@@ -3,7 +3,10 @@
 namespace prophet6 {
 
 Prophet6AudioProcessorEditor::Prophet6AudioProcessorEditor(Prophet6AudioProcessor& p)
-    : AudioProcessorEditor(&p), processorRef_(p)
+    : AudioProcessorEditor(&p),
+      processorRef_(p),
+      performanceWheels_(p),
+      keyboardComponent_(p.getKeyboardState(), juce::MidiKeyboardComponent::horizontalKeyboard)
 {
     setLookAndFeel(&lookAndFeel_);
 
@@ -27,7 +30,7 @@ Prophet6AudioProcessorEditor::Prophet6AudioProcessorEditor(Prophet6AudioProcesso
 
     // 2. Step Sequencer Section
     addToggleButton(bSeqEnabled_, "seq_enabled", "SEQ ON");
-    addToggleButton(bSeqRecord_,  "seq_record",  "RECORD");
+    addToggleButton(bSeqRecord_,  "seq_record",  "REC");
     addToggleButton(bSeqPlay_,    "seq_play",    "PLAY");
 
     bSeqTie_.onClick  = [this] { processorRef_.recordTie(); };
@@ -47,50 +50,73 @@ Prophet6AudioProcessorEditor::Prophet6AudioProcessorEditor(Prophet6AudioProcesso
     addToggleButton(bPolyModLPF_,    "polymod_dest_lpf",        "LPF");
     addToggleButton(bPolyModHPF_,    "polymod_dest_hpf",        "HPF");
 
-    // 4. Oscillators
-    addRotaryKnob(sOsc1Freq_,     lOsc1Freq_,     "osc1_freq",      "OCTAVE");
+    // 4. Oscillators, Slop & Mini Waves
+    addRotaryKnob(sOsc1Freq_,     lOsc1Freq_,     "osc1_freq",      "FREQ");
     addRotaryKnob(sOsc1Shape_,    lOsc1Shape_,    "osc1_wave",      "SHAPE");
     addRotaryKnob(sOsc1PW_,       lOsc1PW_,       "osc1_pw",        "PW");
     addRotaryKnob(sOsc1SubLevel_, lOsc1SubLevel_, "osc1_sub_level", "SUB OCT");
     addToggleButton(bOsc1Sync_, "sync", "SYNC");
+    addAndMakeVisible(miniWaveOsc1_);
 
-    addRotaryKnob(sOsc2Freq_,  lOsc2Freq_,  "osc2_freq", "OCTAVE");
+    addRotaryKnob(sOsc2Freq_,  lOsc2Freq_,  "osc2_freq", "FREQ");
     addRotaryKnob(sOsc2Fine_,  lOsc2Fine_,  "osc2_fine", "FINE");
     addRotaryKnob(sOsc2Shape_, lOsc2Shape_, "osc2_wave", "SHAPE");
     addRotaryKnob(sOsc2PW_,    lOsc2PW_,    "osc2_pw",   "PW");
     addToggleButton(bOsc2LowFreq_,  "osc2_low_freq",  "LOW FREQ");
-    addToggleButton(bOsc2KeyTrack_, "osc2_key_track", "KEY TRACK");
+    addToggleButton(bOsc2KeyTrack_, "osc2_key_track", "KEYBOARD");
+    addAndMakeVisible(miniWaveOsc2_);
 
-    addRotaryKnob(sSlop_, lSlop_, "slop", "SLOP");
+    addRotaryKnob(sSlop_, lSlop_, "slop", "AMOUNT");
 
     // 5. Mixer
     addRotaryKnob(sOsc1Level_,  lOsc1Level_,  "osc1_level",  "OSC 1");
     addRotaryKnob(sOsc2Level_,  lOsc2Level_,  "osc2_level",  "OSC 2");
     addRotaryKnob(sNoiseLevel_, lNoiseLevel_, "noise_level", "NOISE");
 
-    // 6. Filters
-    addRotaryKnob(sLpfCutoff_,   lLpfCutoff_,   "lpf_cutoff",     "CUTOFF");
-    addRotaryKnob(sLpfRes_,      lLpfRes_,      "lpf_resonance",  "RESONANCE");
-    addRotaryKnob(sLpfEnvAmt_,   lLpfEnvAmt_,   "lpf_env_amount", "ENV AMT");
-    addRotaryKnob(sLpfKeyTrack_, lLpfKeyTrack_, "lpf_key_track",  "KEY AMT");
-
+    // 6. Dual Filters
     addRotaryKnob(sHpfCutoff_, lHpfCutoff_, "hpf_cutoff",     "CUTOFF");
     addRotaryKnob(sHpfRes_,    lHpfRes_,    "hpf_resonance",  "RESONANCE");
     addRotaryKnob(sHpfEnvAmt_, lHpfEnvAmt_, "hpf_env_amount", "ENV AMT");
 
-    // 7. Envelopes
+    addRotaryKnob(sLpfCutoff_,   lLpfCutoff_,   "lpf_cutoff",     "CUTOFF");
+    addRotaryKnob(sLpfRes_,      lLpfRes_,      "lpf_resonance",  "RESONANCE");
+    addRotaryKnob(sLpfEnvAmt_,   lLpfEnvAmt_,   "lpf_env_amount", "ENV AMT");
+    addRotaryKnob(sLpfKeyTrack_, lLpfKeyTrack_, "lpf_key_track",  "KEYBOARD");
+
+    // 7. Envelopes & Vector Displays
     addRotaryKnob(sFiltAtt_, lFiltAtt_, "filt_attack",  "ATTACK");
     addRotaryKnob(sFiltDec_, lFiltDec_, "filt_decay",   "DECAY");
     addRotaryKnob(sFiltSus_, lFiltSus_, "filt_sustain", "SUSTAIN");
     addRotaryKnob(sFiltRel_, lFiltRel_, "filt_release", "RELEASE");
+    addAndMakeVisible(adsrFilter_);
 
     addRotaryKnob(sAmpAtt_, lAmpAtt_, "amp_attack",  "ATTACK");
     addRotaryKnob(sAmpDec_, lAmpDec_, "amp_decay",   "DECAY");
     addRotaryKnob(sAmpSus_, lAmpSus_, "amp_sustain", "SUSTAIN");
     addRotaryKnob(sAmpRel_, lAmpRel_, "amp_release", "RELEASE");
     addToggleButton(bVelSens_, "velocity_sensitivity", "VELOCITY");
+    addAndMakeVisible(adsrAmp_);
 
-    // 8. LFO
+    // 8. Aftertouch Controls
+    sAftertouchAmt_.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+    sAftertouchAmt_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    sAftertouchAmt_.setRange(0.0, 1.0, 0.01);
+    sAftertouchAmt_.setValue(0.24);
+    addAndMakeVisible(sAftertouchAmt_);
+    lAftertouchAmt_.setText("AMOUNT", juce::dontSendNotification);
+    lAftertouchAmt_.setFont(juce::Font(10.0f, juce::Font::bold));
+    lAftertouchAmt_.setJustificationType(juce::Justification::centred);
+    lAftertouchAmt_.setColour(juce::Label::textColourId, juce::Colour(0xffe8d8b8));
+    addAndMakeVisible(lAftertouchAmt_);
+
+    bAtFreq1_.setButtonText("FREQ 1");   addAndMakeVisible(bAtFreq1_);
+    bAtFreq2_.setButtonText("FREQ 2");   addAndMakeVisible(bAtFreq2_);
+    bAtLfoAmt_.setButtonText("LFO AMT"); addAndMakeVisible(bAtLfoAmt_);
+    bAtAmp_.setButtonText("AMP");       addAndMakeVisible(bAtAmp_);
+    bAtLPF_.setButtonText("LPF");       addAndMakeVisible(bAtLPF_);
+    bAtHPF_.setButtonText("HPF");       addAndMakeVisible(bAtHPF_);
+
+    // 9. LFO
     addRotaryKnob(sLfoFreq_, lLfoFreq_, "lfo_freq",   "FREQUENCY");
     addRotaryKnob(sLfoAmt_,  lLfoAmt_,  "lfo_amount", "INITIAL AMT");
 
@@ -102,20 +128,20 @@ Prophet6AudioProcessorEditor::Prophet6AudioProcessorEditor(Prophet6AudioProcesso
 
     addToggleButton(bLfoOsc1_, "lfo_dest_osc1_freq", "FREQ 1");
     addToggleButton(bLfoOsc2_, "lfo_dest_osc2_freq", "FREQ 2");
-    addToggleButton(bLfoLpf_,  "lfo_dest_lpf",       "LPF");
-    addToggleButton(bLfoHpf_,  "lfo_dest_hpf",       "HPF");
+    addToggleButton(bLfoLpf_,  "lfo_dest_lpf",       "LP FILTER");
+    addToggleButton(bLfoHpf_,  "lfo_dest_hpf",       "HP FILTER");
     addToggleButton(bLfoAmp_,  "lfo_dest_amp",       "AMP");
 
-    // 9. Master & Performance
-    addRotaryKnob(sDistortion_,   lDistortion_,   "distortion_amount", "DISTORTION");
-    addRotaryKnob(sMasterVol_,    lMasterVol_,    "master_volume",     "VOLUME");
+    // 10. Master, Distortion, Glide, Unison
+    addRotaryKnob(sDistortion_,   lDistortion_,   "distortion_amount", "AMOUNT");
+    addRotaryKnob(sMasterVol_,    lMasterVol_,    "master_volume",     "PROG VOL");
     addRotaryKnob(sPanSpread_,    lPanSpread_,    "pan_spread",        "PAN SPREAD");
-    addRotaryKnob(sGlide_,        lGlide_,        "glide",             "GLIDE");
+    addRotaryKnob(sGlide_,        lGlide_,        "glide",             "GLIDE RATE");
     addRotaryKnob(sUnisonDetune_, lUnisonDetune_, "unison_detune",     "DETUNE");
     addToggleButton(bUnison_, "unison", "UNISON");
 
-    // 10. Effects Section (Phase 4: Dual Digital Stereo Effects Engine)
-    addToggleButton(bFxOn_, "fx_on", "FX ON");
+    // 11. Dual Stereo Effects & Pre-FX Oscilloscope
+    addToggleButton(bFxOn_, "fx_on", "ON/OFF");
 
     const juce::StringArray fxList = {
         "BBD DELAY", "DIGITAL DELAY", "TAPE DELAY", "CHORUS", "FLANGER",
@@ -128,9 +154,9 @@ Prophet6AudioProcessorEditor::Prophet6AudioProcessorEditor(Prophet6AudioProcesso
         std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
             processorRef_.getAPVTS(), "fx1_type", cFx1Type_));
 
+    addRotaryKnob(sFx1Mix_,    lFx1Mix_,    "fx1_mix",    "MIX");
     addRotaryKnob(sFx1Param1_, lFx1Param1_, "fx1_param1", "PARAM 1");
     addRotaryKnob(sFx1Param2_, lFx1Param2_, "fx1_param2", "PARAM 2");
-    addRotaryKnob(sFx1Mix_,    lFx1Mix_,    "fx1_mix",    "MIX");
 
     cFx2Type_.addItemList(fxList, 1);
     addAndMakeVisible(cFx2Type_);
@@ -138,11 +164,13 @@ Prophet6AudioProcessorEditor::Prophet6AudioProcessorEditor(Prophet6AudioProcesso
         std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
             processorRef_.getAPVTS(), "fx2_type", cFx2Type_));
 
+    addRotaryKnob(sFx2Mix_,    lFx2Mix_,    "fx2_mix",    "MIX");
     addRotaryKnob(sFx2Param1_, lFx2Param1_, "fx2_param1", "PARAM 1");
     addRotaryKnob(sFx2Param2_, lFx2Param2_, "fx2_param2", "PARAM 2");
-    addRotaryKnob(sFx2Mix_,    lFx2Mix_,    "fx2_mix",    "MIX");
 
-    // Phase 5 & 6: Preset Navigation, Hardware Write & Compare, and Standalone Settings
+    addAndMakeVisible(oscilloscope_);
+
+    // 12. Preset Navigation & Hardware Librarian
     bProgDec_.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff222222));
     bProgDec_.setColour(juce::TextButton::textColourOffId, juce::Colour(0xffe8d8b8));
     bProgDec_.onClick = [this] {
@@ -150,7 +178,7 @@ Prophet6AudioProcessorEditor::Prophet6AudioProcessorEditor(Prophet6AudioProcesso
             int dest = processorRef_.getWriteDestination();
             int next = (dest <= 100) ? 999 : dest - 1;
             processorRef_.setWriteDestination(next);
-            repaint(220, 8, 510, 72);
+            repaint(40, 8, 380, 72);
         } else {
             const int maxProg = static_cast<int>(processorRef_.getPresetManager().getNumPresets()) - 1;
             int cur = processorRef_.getCurrentProgram();
@@ -158,7 +186,7 @@ Prophet6AudioProcessorEditor::Prophet6AudioProcessorEditor(Prophet6AudioProcesso
             processorRef_.setCurrentProgram(next);
             lastProgramIndex_ = next;
             cPresetSelect_.setSelectedId(next + 1, juce::dontSendNotification);
-            repaint(220, 8, 510, 72);
+            repaint(40, 8, 380, 72);
         }
     };
     addAndMakeVisible(bProgDec_);
@@ -170,7 +198,7 @@ Prophet6AudioProcessorEditor::Prophet6AudioProcessorEditor(Prophet6AudioProcesso
             int dest = processorRef_.getWriteDestination();
             int next = (dest >= 999) ? 100 : dest + 1;
             processorRef_.setWriteDestination(next);
-            repaint(220, 8, 510, 72);
+            repaint(40, 8, 380, 72);
         } else {
             const int maxProg = static_cast<int>(processorRef_.getPresetManager().getNumPresets()) - 1;
             int cur = processorRef_.getCurrentProgram();
@@ -178,7 +206,7 @@ Prophet6AudioProcessorEditor::Prophet6AudioProcessorEditor(Prophet6AudioProcesso
             processorRef_.setCurrentProgram(next);
             lastProgramIndex_ = next;
             cPresetSelect_.setSelectedId(next + 1, juce::dontSendNotification);
-            repaint(220, 8, 510, 72);
+            repaint(40, 8, 380, 72);
         }
     };
     addAndMakeVisible(bProgInc_);
@@ -195,7 +223,7 @@ Prophet6AudioProcessorEditor::Prophet6AudioProcessorEditor(Prophet6AudioProcesso
             populatePresetComboBox(cCategoryFilter_.getSelectedId());
             cPresetSelect_.setSelectedId(processorRef_.getCurrentProgram() + 1, juce::dontSendNotification);
         }
-        repaint(220, 8, 510, 72);
+        repaint(40, 8, 380, 72);
     };
     addAndMakeVisible(bWrite_);
 
@@ -208,7 +236,7 @@ Prophet6AudioProcessorEditor::Prophet6AudioProcessorEditor(Prophet6AudioProcesso
         } else {
             bCompare_.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff222222));
         }
-        repaint(220, 8, 510, 72);
+        repaint(40, 8, 380, 72);
     };
     addAndMakeVisible(bCompare_);
 
@@ -284,21 +312,29 @@ Prophet6AudioProcessorEditor::Prophet6AudioProcessorEditor(Prophet6AudioProcesso
             if (processorRef_.isWriteArmed()) {
                 if (progIndex >= 100) {
                     processorRef_.setWriteDestination(progIndex);
-                    repaint(220, 8, 510, 72);
+                    repaint(40, 8, 380, 72);
                 }
             } else {
                 if (progIndex != processorRef_.getCurrentProgram()) {
                     processorRef_.setCurrentProgram(progIndex);
                     lastProgramIndex_ = progIndex;
-                    repaint(220, 8, 510, 72);
+                    repaint(40, 8, 380, 72);
                 }
             }
         }
     };
     addAndMakeVisible(cPresetSelect_);
 
-    setSize(1100, 720);
-    startTimerHz(40); // 40 Hz refresh for voice activity LEDs & sequencer step counter
+    // 13. Performance Strip & Virtual Keyboard
+    addAndMakeVisible(performanceWheels_);
+
+    keyboardComponent_.setAvailableRange(24, 96); // C1 to C7 (6 Octaves)
+    keyboardComponent_.setKeyWidth(16.5f);
+    addAndMakeVisible(keyboardComponent_);
+
+    // SoundTower Master Layout Dimension: 1200 x 820 px
+    setSize(1200, 820);
+    startTimerHz(40); // 40 Hz refresh
 }
 
 Prophet6AudioProcessorEditor::~Prophet6AudioProcessorEditor()
@@ -318,7 +354,6 @@ void Prophet6AudioProcessorEditor::populatePresetComboBox(int categoryFilterInde
             include = true;
         } else {
             int catInt = static_cast<int>(p.category);
-            // 2: BRASS(0), 3: KEYS(1), 4: PAD(2), 5: STRINGS(3), 6: BASS(4), 7: LEAD(5), 8: ARP(6), 9: FX(7)
             if (catInt == categoryFilterIndex - 2) {
                 include = true;
             }
@@ -400,9 +435,25 @@ void Prophet6AudioProcessorEditor::timerCallback()
         needRepaint = true;
     }
 
+    // Real-Time Visualizers: Oscilloscope
+    std::array<float, 512> preFxMono{};
+    processorRef_.getSynthEngine().copyRecentPreFx(preFxMono.data(), preFxMono.size());
+    const float fundamental = processorRef_.getSynthEngine().getLowestActiveNoteFreq();
+    const float sr = processorRef_.getSynthEngine().getSampleRate();
+    oscilloscope_.updateWaveform(preFxMono.data(), preFxMono.size(), fundamental, sr);
+
+    // Real-Time Mini Waves
+    miniWaveOsc1_.setParams(static_cast<float>(sOsc1Shape_.getValue()), static_cast<float>(sOsc1PW_.getValue()));
+    miniWaveOsc2_.setParams(static_cast<float>(sOsc2Shape_.getValue()), static_cast<float>(sOsc2PW_.getValue()));
+
+    // Real-Time Vector ADSRs
+    adsrFilter_.setAdsr(static_cast<float>(sFiltAtt_.getValue()), static_cast<float>(sFiltDec_.getValue()),
+                        static_cast<float>(sFiltSus_.getValue()), static_cast<float>(sFiltRel_.getValue()));
+    adsrAmp_.setAdsr(static_cast<float>(sAmpAtt_.getValue()), static_cast<float>(sAmpDec_.getValue()),
+                     static_cast<float>(sAmpSus_.getValue()), static_cast<float>(sAmpRel_.getValue()));
+
     if (needRepaint) {
-        // Repaint the top display area
-        repaint(220, 8, 510, 72);
+        repaint(40, 8, 480, 72);
     }
 }
 
@@ -411,376 +462,366 @@ void Prophet6AudioProcessorEditor::paint(juce::Graphics& g)
     const int w = getWidth();
     const int h = getHeight();
 
-    // 1. Central Matte Black Aluminum Chassis
-    g.setColour(juce::Colour(0xff141414));
+    // 1. Central Matte Dark Aluminum Chassis
+    g.setColour(juce::Colour(0xff121316));
     g.fillRect(0, 0, w, h);
 
-    // Hairline brushed aluminum metallic gradient
-    juce::ColourGradient chassisGrad(juce::Colour(0xff202020), 0.0f, 0.0f,
-                                     juce::Colour(0xff111111), 0.0f, static_cast<float>(h), false);
+    // Hairline brushed dark metal gradient
+    juce::ColourGradient chassisGrad(juce::Colour(0xff1e2024), 0.0f, 0.0f,
+                                     juce::Colour(0xff101114), 0.0f, static_cast<float>(h), false);
     g.setGradientFill(chassisGrad);
-    g.fillRect(42, 0, w - 84, h);
+    g.fillRect(40, 0, w - 80, h);
 
-    // 2. Walnut Wood Side Panels (Cheeks)
+    // 2. Walnut Wood End Cheeks
     auto drawWoodCheek = [&](int x, int width) {
-        juce::ColourGradient woodGrad(juce::Colour(0xff442210), static_cast<float>(x), 0.0f,
-                                      juce::Colour(0xff220e04), static_cast<float>(x + width), static_cast<float>(h), false);
+        juce::ColourGradient woodGrad(juce::Colour(0xff42210e), static_cast<float>(x), 0.0f,
+                                      juce::Colour(0xff1c0c04), static_cast<float>(x + width), static_cast<float>(h), false);
         g.setGradientFill(woodGrad);
         g.fillRect(x, 0, width, h);
 
-        // Wood grain streaks
-        for (int i = 0; i < h; i += 8) {
-            g.setColour(juce::Colours::black.withAlpha(0.12f));
+        // Natural wood grain striations
+        for (int i = 0; i < h; i += 7) {
+            g.setColour(juce::Colours::black.withAlpha(0.14f));
             g.drawHorizontalLine(i, static_cast<float>(x), static_cast<float>(x + width));
         }
 
-        // Metallic bevel join shadow
-        g.setColour(juce::Colours::black.withAlpha(0.6f));
+        // Metal joining border
+        g.setColour(juce::Colours::black.withAlpha(0.65f));
         g.fillRect(x == 0 ? width - 2 : x, 0, 2, h);
     };
-    drawWoodCheek(0, 42);
-    drawWoodCheek(w - 42, 42);
+    drawWoodCheek(0, 40);
+    drawWoodCheek(w - 40, 40);
 
-    // 3. Header Branding
-    g.setColour(juce::Colour(0xffecd8ba));
+    // 3. Header: LCD Preset Display ($x = 44, y = 10, w = 216, h = 64$)
+    const juce::Rectangle<int> lcdDisplay(44, 10, 216, 64);
+    g.setColour(juce::Colour(0xff090c0f));
+    g.fillRoundedRectangle(lcdDisplay.toFloat(), 4.0f);
+    g.setColour(juce::Colour(0xff222a32));
+    g.drawRoundedRectangle(lcdDisplay.toFloat(), 4.0f, 1.2f);
+
+    const int curProg = processorRef_.getCurrentProgram();
+    const auto& pm = processorRef_.getPresetManager();
+    const auto& p = pm.getPreset(static_cast<size_t>(curProg));
+
+    // Preset Category & Bank
+    g.setColour(juce::Colour(0xff88a0b0));
+    g.setFont(juce::Font(9.5f, juce::Font::bold));
+    juce::String bankStr = (curProg < 100) ? "F" : "U";
+    juce::String catStr = (p.category == PresetCategory::Brass)   ? "BRASS"   :
+                          (p.category == PresetCategory::Keys)    ? "KEYS"    :
+                          (p.category == PresetCategory::Pad)     ? "PADS"    :
+                          (p.category == PresetCategory::Strings) ? "STRINGS" :
+                          (p.category == PresetCategory::Bass)    ? "BASS"    :
+                          (p.category == PresetCategory::Lead)    ? "LEAD"    :
+                          (p.category == PresetCategory::Arp)     ? "ARP"     : "SFX";
+    g.drawText(bankStr + " " + juce::String::formatted("%03d", curProg), lcdDisplay.getX() + 8, lcdDisplay.getY() + 6, 70, 14, juce::Justification::left);
+    g.drawText(catStr, lcdDisplay.getX() + 110, lcdDisplay.getY() + 6, 96, 14, juce::Justification::right);
+
+    // Preset Name in bright turquoise/white LCD text
+    g.setColour(juce::Colour(0xffffffff));
     g.setFont(juce::Font(16.0f, juce::Font::bold));
-    g.drawText("SEQUENTIAL", 55, 10, 140, 20, juce::Justification::left);
+    g.drawText(juce::String(p.getName().data()), lcdDisplay.getX() + 8, lcdDisplay.getY() + 24, 170, 22, juce::Justification::left);
 
-    g.setColour(juce::Colour(0xffe04040));
-    g.setFont(juce::Font(20.0f, juce::Font::bold));
-    g.drawText("PROPHET-6", 55, 28, 150, 22, juce::Justification::left);
-
-    g.setColour(juce::Colour(0xffa09080));
-    g.setFont(juce::Font(9.0f, juce::Font::plain));
-    g.drawText("6-VOICE DISCRETE POLYPHONIC SYNTHESIZER", 55, 52, 170, 14, juce::Justification::left);
-
-    // 4. Retro 7-Segment LED Patch Display (Phase 5 & 6)
-    const juce::Rectangle<int> patchDisplay(230, 14, 80, 52);
-    g.setColour(juce::Colour(0xff080000));
-    g.fillRoundedRectangle(patchDisplay.toFloat(), 4.0f);
-    g.setColour(juce::Colour(0xff401010));
-    g.drawRoundedRectangle(patchDisplay.toFloat(), 4.0f, 1.5f);
-
-    const bool isArmed = processorRef_.isWriteArmed();
-    const bool isCmp = processorRef_.isComparing();
-
-    if (isArmed) {
-        // Blinking "WRITE TO" indicator & destination slot
-        g.setColour(juce::Colour(0xffff4040));
-        g.setFont(juce::Font(8.0f, juce::Font::bold));
-        g.drawText("WRITE TO", patchDisplay.getX() + 6, patchDisplay.getY() + 3, 68, 10, juce::Justification::left);
-
-        // Ghost background segments ("888")
-        g.setColour(juce::Colour(0x18440000));
-        g.setFont(juce::Font(24.0f, juce::Font::bold));
-        g.drawText("888", patchDisplay.withTrimmedRight(6).withTrimmedTop(6), juce::Justification::centredRight);
-
-        const bool blinkOn = (blinkCounter_ / 5) % 2 == 0;
-        if (blinkOn) {
-            const int destSlot = processorRef_.getWriteDestination();
-            const juce::String destStr = juce::String::formatted("%03d", destSlot);
-            g.setColour(juce::Colour(0x44ff1818));
-            g.drawText(destStr, patchDisplay.withTrimmedRight(6).withTrimmedTop(6).expanded(1), juce::Justification::centredRight);
-            g.setColour(juce::Colour(0xffff2828));
-            g.drawText(destStr, patchDisplay.withTrimmedRight(6).withTrimmedTop(6), juce::Justification::centredRight);
+    // Status indicator
+    if (processorRef_.isWriteArmed()) {
+        const bool blink = (blinkCounter_ / 5) % 2 == 0;
+        if (blink) {
+            g.setColour(juce::Colour(0xffff3333));
+            g.setFont(juce::Font(10.0f, juce::Font::bold));
+            g.drawText("WRITE -> " + juce::String::formatted("%03d", processorRef_.getWriteDestination()),
+                       lcdDisplay.getX() + 8, lcdDisplay.getY() + 46, 190, 14, juce::Justification::left);
         }
-    } else if (isCmp) {
-        // Compare Mode active: amber "COMPARE" indicator
-        g.setColour(juce::Colour(0xffffaa30));
-        g.setFont(juce::Font(8.0f, juce::Font::bold));
-        g.drawText("COMPARE", patchDisplay.getX() + 6, patchDisplay.getY() + 3, 68, 10, juce::Justification::left);
-
-        g.setColour(juce::Colour(0x20442200));
-        g.setFont(juce::Font(24.0f, juce::Font::bold));
-        g.drawText("888", patchDisplay.withTrimmedRight(6).withTrimmedTop(6), juce::Justification::centredRight);
-
-        const int progNum = processorRef_.getCurrentProgram();
-        const juce::String progStr = juce::String::formatted("%03d", progNum);
-        g.setColour(juce::Colour(0x55ffaa20));
-        g.drawText(progStr, patchDisplay.withTrimmedRight(6).withTrimmedTop(6).expanded(1), juce::Justification::centredRight);
-        g.setColour(juce::Colour(0xffffb830));
-        g.drawText(progStr, patchDisplay.withTrimmedRight(6).withTrimmedTop(6), juce::Justification::centredRight);
+    } else if (processorRef_.isComparing()) {
+        g.setColour(juce::Colour(0xffffaa33));
+        g.setFont(juce::Font(10.0f, juce::Font::bold));
+        g.drawText("[COMPARE MODE]", lcdDisplay.getX() + 8, lcdDisplay.getY() + 46, 120, 14, juce::Justification::left);
     } else {
-        // Normal Mode: Red LED program digits
-        g.setColour(juce::Colour(0xff882020));
-        g.setFont(juce::Font(8.0f, juce::Font::bold));
-        g.drawText("PROGRAM", patchDisplay.getX() + 6, patchDisplay.getY() + 3, 60, 10, juce::Justification::left);
-
-        // Ghost background segments ("888")
-        g.setColour(juce::Colour(0x18440000));
-        g.setFont(juce::Font(24.0f, juce::Font::bold));
-        g.drawText("888", patchDisplay.withTrimmedRight(6).withTrimmedTop(6), juce::Justification::centredRight);
-
-        // Glowing red digits
-        const int progNum = processorRef_.getCurrentProgram();
-        const juce::String progStr = juce::String::formatted("%03d", progNum);
-        g.setColour(juce::Colour(0x44ff1818));
-        g.drawText(progStr, patchDisplay.withTrimmedRight(6).withTrimmedTop(6).expanded(1), juce::Justification::centredRight);
-        g.setColour(juce::Colour(0xffff2828));
-        g.drawText(progStr, patchDisplay.withTrimmedRight(6).withTrimmedTop(6), juce::Justification::centredRight);
+        g.setColour(juce::Colour(0xffff4444));
+        g.setFont(juce::Font(10.0f, juce::Font::bold));
+        g.drawText("(A)", lcdDisplay.getX() + 186, lcdDisplay.getY() + 46, 20, 14, juce::Justification::right);
     }
 
-    // 5. Retro 7-Segment LED Step Sequencer Display
-    const juce::Rectangle<int> seqDisplay(525, 14, 80, 52);
-    g.setColour(juce::Colour(0xff080000));
-    g.fillRoundedRectangle(seqDisplay.toFloat(), 4.0f);
-    g.setColour(juce::Colour(0xff401010));
-    g.drawRoundedRectangle(seqDisplay.toFloat(), 4.0f, 1.5f);
+    // 4. Header: Top-Right Brushed Metallic Badge "SEQUENTIAL Prophet~6"
+    const juce::Rectangle<float> badgeRect(942.0f, 10.0f, 214.0f, 64.0f);
+    // Aluminum badge plate
+    juce::ColourGradient badgeGrad(juce::Colour(0xffdedfe2), badgeRect.getX(), badgeRect.getY(),
+                                   juce::Colour(0xff9ea0a6), badgeRect.getX(), badgeRect.getBottom(), false);
+    g.setGradientFill(badgeGrad);
+    g.fillRoundedRectangle(badgeRect, 4.0f);
+    // Chrome edge border
+    g.setColour(juce::Colour(0xfff8f9fa));
+    g.drawRoundedRectangle(badgeRect.reduced(1.0f), 3.0f, 1.0f);
+    g.setColour(juce::Colour(0xff4a4c52));
+    g.drawRoundedRectangle(badgeRect, 4.0f, 1.5f);
 
-    g.setColour(juce::Colour(0xff882020));
+    // "SEQUENTIAL" uppercase logo in black
+    g.setColour(juce::Colour(0xff18181b));
+    g.setFont(juce::Font(16.5f, juce::Font::bold));
+    g.drawText("SEQUENTIAL", badgeRect.getX(), badgeRect.getY() + 6.0f, badgeRect.getWidth(), 22.0f, juce::Justification::centred);
+
+    // "Prophet~6" script badge
+    const juce::Rectangle<float> innerScriptBox(badgeRect.getX() + 12.0f, badgeRect.getY() + 30.0f, badgeRect.getWidth() - 24.0f, 26.0f);
+    g.setColour(juce::Colour(0xff303238));
+    g.fillRoundedRectangle(innerScriptBox, 2.0f);
+    g.setColour(juce::Colour(0xffe8eaed));
+    g.setFont(juce::Font(16.0f, juce::Font::italic | juce::Font::bold));
+    g.drawText("Prophet~6", innerScriptBox, juce::Justification::centred);
+
+    // 5. Section Panel Outlines matching SoundTower PlugSE layout
+    auto drawSectionBox = [&](int sx, int sy, int sw, int sh, const juce::String& title,
+                              juce::Colour accent = juce::Colour(0xffecd8ba)) {
+        const auto b = juce::Rectangle<int>(sx, sy, sw, sh).toFloat();
+        g.setColour(juce::Colour(0x24ffffff));
+        g.drawRoundedRectangle(b, 4.0f, 1.0f);
+
+        // Header cutout label
+        const int titleW = juce::Font(9.5f, juce::Font::bold).getStringWidth(title) + 16;
+        g.setColour(juce::Colour(0xff181a1e));
+        g.fillRect(sx + 10, sy - 7, titleW, 14);
+
+        g.setColour(accent);
+        g.setFont(juce::Font(9.5f, juce::Font::bold));
+        g.drawText(title, sx + 10, sy - 7, titleW, 14, juce::Justification::centred);
+    };
+
+    // Upper Grid:
+    drawSectionBox(44,  84, 346, 120, "OSCILLATOR 1");
+    drawSectionBox(44, 208, 346, 122, "OSCILLATOR 2");
+    drawSectionBox(394,  84,  84, 120, "SLOP");
+    drawSectionBox(482,  84, 196, 246, "MIXER");
+    drawSectionBox(684,  84, 472, 120, "HIGH PASS FILTER");
+    drawSectionBox(684, 208, 472, 122, "LOW PASS FILTER");
+
+    // Middle Grid:
+    drawSectionBox(44,  334, 634, 82, "FILTER ENVELOPE");
+    drawSectionBox(684, 334, 472, 82, "POLY MOD", juce::Colour(0xfff07070));
+    drawSectionBox(44,  420, 634, 84, "AMPLIFIER ENVELOPE");
+    drawSectionBox(684, 420, 472, 84, "AFTERTOUCH", juce::Colour(0xfff0a070));
+
+    // Lower Grid:
+    drawSectionBox(44,  508, 506, 80, "EFFECTS", juce::Colour(0xffe8c890));
+    drawSectionBox(554, 508, 286, 80, "PRE-FX OSCILLOSCOPE", juce::Colour(0xff66ff88));
+    drawSectionBox(844, 508, 312, 80, "MISC PARAMETERS");
+    drawSectionBox(44,  592, 636, 76, "LOW FREQUENCY OSCILLATORS (LFO)");
+    drawSectionBox(684, 592, 472, 76, "DISTORTION & UNISON / GLIDE");
+
+    // 6. Voice Activity LEDs inside Mixer Panel
+    const int vLedX = 502;
+    const int vLedY = 302;
+    g.setColour(juce::Colour(0xffa09080));
     g.setFont(juce::Font(8.0f, juce::Font::bold));
-    g.drawText("STEP SEQ", seqDisplay.getX() + 6, seqDisplay.getY() + 3, 60, 10, juce::Justification::left);
-
-    g.setColour(juce::Colour(0x18440000));
-    g.setFont(juce::Font(20.0f, juce::Font::bold));
-    g.drawText("88:88", seqDisplay.withTrimmedTop(6), juce::Justification::centred);
-
-    g.setColour(juce::Colour(0xffff2020));
-    const juce::String stepText = lastSeqRec_ ? "REC" : (juce::String("ST ") + juce::String::formatted("%02d", static_cast<int>(lastSeqStep_ + 1)));
-    g.drawText(stepText, seqDisplay.withTrimmedTop(6), juce::Justification::centred);
-
-    // 6. 6 Voice Activity LEDs
-    const int ledBarX = 615;
-    const int ledBarY = 16;
-    g.setColour(juce::Colour(0xffc0b090));
-    g.setFont(juce::Font(9.5f, juce::Font::bold));
-    g.drawText("VOICE ACTIVITY", ledBarX, ledBarY, 105, 14, juce::Justification::centred);
+    g.drawText("VOICES:", vLedX, vLedY - 12, 60, 10, juce::Justification::left);
 
     for (int i = 0; i < 6; ++i) {
-        const float lampX = static_cast<float>(ledBarX + 6 + i * 17);
-        const float lampY = static_cast<float>(ledBarY + 18);
-        const float lampSize = 13.0f;
+        const float lampX = static_cast<float>(vLedX + i * 26);
+        const float lampY = static_cast<float>(vLedY);
+        const float lampSize = 10.0f;
 
-        g.setColour(juce::Colour(0xff3a3a3a));
+        g.setColour(juce::Colour(0xff303030));
         g.fillEllipse(lampX - 1.0f, lampY - 1.0f, lampSize + 2.0f, lampSize + 2.0f);
 
         const bool active = voiceActiveState_[static_cast<size_t>(i)];
         if (active) {
-            g.setColour(juce::Colour(0x55ff1111));
-            g.fillEllipse(lampX - 3.0f, lampY - 3.0f, lampSize + 6.0f, lampSize + 6.0f);
-
+            g.setColour(juce::Colour(0x55ff2222));
+            g.fillEllipse(lampX - 2.0f, lampY - 2.0f, lampSize + 4.0f, lampSize + 4.0f);
             g.setColour(juce::Colour(0xffff2828));
             g.fillEllipse(lampX, lampY, lampSize, lampSize);
-
-            g.setColour(juce::Colours::white.withAlpha(0.75f));
-            g.fillEllipse(lampX + 3.0f, lampY + 2.5f, 3.5f, 3.5f);
+            g.setColour(juce::Colours::white.withAlpha(0.8f));
+            g.fillEllipse(lampX + 2.0f, lampY + 2.0f, 2.5f, 2.5f);
         } else {
-            g.setColour(juce::Colour(0xff250505));
+            g.setColour(juce::Colour(0xff240606));
             g.fillEllipse(lampX, lampY, lampSize, lampSize);
         }
-
-        g.setColour(juce::Colour(0xff908070));
-        g.setFont(juce::Font(8.5f, juce::Font::plain));
-        g.drawText(juce::String(i + 1), static_cast<int>(lampX - 2.0f), static_cast<int>(lampY + 15.0f), 17, 11, juce::Justification::centred);
     }
-
-    // 7. Section Boxes & Boundaries
-    auto drawSection = [&](int sx, int sy, int sw, int sh, const juce::String& title, juce::Colour titleCol = juce::Colour(0xffecd8ba)) {
-        const auto b = juce::Rectangle<int>(sx, sy, sw, sh).toFloat();
-        g.setColour(juce::Colour(0x18ffffff));
-        g.drawRoundedRectangle(b, 4.0f, 1.0f);
-
-        g.setColour(juce::Colour(0xff181818));
-        g.fillRect(sx + 8, sy - 8, sw - 16, 16);
-
-        g.setColour(titleCol);
-        g.setFont(juce::Font(10.0f, juce::Font::bold));
-        g.drawText(title, sx + 8, sy - 8, sw - 16, 16, juce::Justification::centred);
-    };
-
-    // Upper row sections (height 240)
-    drawSection(50,  88, 140, 242, "ARPEGGIATOR", juce::Colour(0xffe8c890));
-    drawSection(195, 88, 155, 242, "STEP SEQUENCER", juce::Colour(0xffe8c890));
-    drawSection(355, 88, 165, 242, "POLY MOD", juce::Colour(0xfff07070));
-    drawSection(525, 88, 385, 242, "OSCILLATORS");
-    drawSection(915, 88, 135, 242, "MIXER");
-
-    // Lower row sections (height 245)
-    drawSection(50,  340, 225, 245, "LOW-PASS FILTER (4-POLE)");
-    drawSection(280, 340, 175, 245, "HIGH-PASS FILTER (2-POLE)");
-    drawSection(460, 340, 220, 245, "FILTER ENVELOPE");
-    drawSection(685, 340, 220, 245, "AMPLIFIER");
-    drawSection(910, 340, 140, 245, "LFO");
-
-    // Effects row sections (height 112)
-    drawSection(50,  595, 120, 112, "TRUE BYPASS", juce::Colour(0xfff07070));
-    drawSection(180, 595, 430, 112, "EFFECTS 1 (FX A)", juce::Colour(0xffe8c890));
-    drawSection(620, 595, 430, 112, "EFFECTS 2 (FX B)", juce::Colour(0xffe8c890));
 }
 
 void Prophet6AudioProcessorEditor::resized()
 {
-    // Preset Browser & Navigation Controls (Phase 5 & 6)
-    bProgDec_.setBounds(313, 16, 24, 23);
-    bProgInc_.setBounds(313, 42, 24, 23);
-    bWrite_.setBounds(340, 16, 58, 23);
-    bCompare_.setBounds(340, 42, 58, 23);
-    cCategoryFilter_.setBounds(402, 16, 118, 23);
-    cPresetSelect_.setBounds(402, 42, 118, 23);
+    // --- Header Bar ---
+    // Preset Librarian controls
+    bProgDec_.setBounds(265, 12, 24, 22);
+    bProgInc_.setBounds(265, 36, 24, 22);
+    bWrite_.setBounds(293, 12, 54, 22);
+    bCompare_.setBounds(293, 36, 54, 22);
+    cCategoryFilter_.setBounds(351, 12, 90, 22);
+    cPresetSelect_.setBounds(351, 36, 90, 22);
 
-    // Standalone Settings Button on top-right wood cheek
-    bSettings_.setBounds(1060, 14, 36, 22);
+    // Clock & Tempo
+    sSeqBpm_.setBounds(452, 14, 44, 44);
+    lSeqBpm_.setBounds(452, 58, 44, 14);
+    cArpDivision_.setBounds(500, 26, 68, 22);
 
-    // Top Bar Master Controls
-    sSlop_.setBounds(730, 20, 48, 48);
-    lSlop_.setBounds(730, 68, 48, 14);
+    // Arpeggiator
+    bArpEnabled_.setBounds(578, 14, 60, 20);
+    bArpHold_.setBounds(578, 38, 60, 20);
+    cArpMode_.setBounds(642, 26, 80, 22);
+    sArpOctave_.setBounds(728, 14, 38, 38);
+    lArpOctave_.setBounds(724, 52, 46, 12);
 
-    sDistortion_.setBounds(785, 20, 48, 48);
-    lDistortion_.setBounds(785, 68, 48, 14);
+    // Sequencer
+    bSeqPlay_.setBounds(778, 14, 64, 24);
+    bSeqRecord_.setBounds(778, 42, 64, 20);
+    bSeqTie_.setBounds(846, 14, 46, 22);
+    bSeqRest_.setBounds(846, 40, 46, 22);
+    sSeqLength_.setBounds(896, 14, 38, 38);
+    lSeqLength_.setBounds(892, 52, 46, 12);
 
-    sPanSpread_.setBounds(840, 20, 48, 48);
-    lPanSpread_.setBounds(840, 68, 48, 14);
+    // Standalone Settings Button
+    bSettings_.setBounds(1164, 14, 32, 22);
 
-    sGlide_.setBounds(895, 20, 48, 48);
-    lGlide_.setBounds(895, 68, 48, 14);
+    // --- Row 1: Upper Middle Grid ---
+    // Oscillator 1
+    sOsc1Freq_.setBounds(52, 102, 46, 46);
+    lOsc1Freq_.setBounds(52, 148, 46, 13);
+    bOsc1Sync_.setBounds(104, 116, 56, 20);
+    sOsc1Shape_.setBounds(164, 102, 46, 46);
+    lOsc1Shape_.setBounds(164, 148, 46, 13);
+    miniWaveOsc1_.setBounds(214, 112, 44, 26);
+    sOsc1PW_.setBounds(264, 102, 46, 46);
+    lOsc1PW_.setBounds(264, 148, 46, 13);
+    sOsc1SubLevel_.setBounds(328, 102, 46, 46);
+    lOsc1SubLevel_.setBounds(328, 148, 46, 13);
 
-    bUnison_.setBounds(950, 18, 85, 24);
-    sUnisonDetune_.setBounds(955, 42, 40, 36);
-    lUnisonDetune_.setBounds(945, 78, 60, 12);
+    // Oscillator 2
+    sOsc2Freq_.setBounds(52, 226, 46, 46);
+    lOsc2Freq_.setBounds(52, 272, 46, 13);
+    sOsc2Fine_.setBounds(104, 226, 46, 46);
+    lOsc2Fine_.setBounds(104, 272, 46, 13);
+    sOsc2Shape_.setBounds(156, 226, 46, 46);
+    lOsc2Shape_.setBounds(156, 272, 46, 13);
+    miniWaveOsc2_.setBounds(206, 236, 44, 26);
+    sOsc2PW_.setBounds(254, 226, 46, 46);
+    lOsc2PW_.setBounds(254, 272, 46, 13);
+    bOsc2LowFreq_.setBounds(308, 226, 76, 20);
+    bOsc2KeyTrack_.setBounds(308, 252, 76, 20);
 
-    sMasterVol_.setBounds(1005, 36, 44, 44);
-    lMasterVol_.setBounds(1005, 80, 44, 12);
+    // Slop Panel
+    sSlop_.setBounds(412, 106, 48, 48);
+    lSlop_.setBounds(412, 154, 48, 13);
 
-    // 1. Arpeggiator (x: 50, y: 88, w: 140, h: 242)
-    bArpEnabled_.setBounds(58, 110, 62, 22);
-    bArpHold_.setBounds(122, 110, 62, 22);
+    // Mixer Panel
+    sOsc1Level_.setBounds(500, 106, 50, 50);
+    lOsc1Level_.setBounds(500, 156, 50, 13);
+    sOsc2Level_.setBounds(608, 106, 50, 50);
+    lOsc2Level_.setBounds(608, 156, 50, 13);
+    sNoiseLevel_.setBounds(554, 204, 50, 50);
+    lNoiseLevel_.setBounds(554, 254, 50, 13);
 
-    cArpMode_.setBounds(58, 140, 124, 22);
-    cArpDivision_.setBounds(58, 170, 124, 22);
+    // High Pass Filter
+    sHpfCutoff_.setBounds(706, 104, 52, 52);
+    lHpfCutoff_.setBounds(706, 156, 52, 13);
+    sHpfRes_.setBounds(786, 104, 52, 52);
+    lHpfRes_.setBounds(786, 156, 52, 13);
+    sHpfEnvAmt_.setBounds(866, 104, 52, 52);
+    lHpfEnvAmt_.setBounds(866, 156, 52, 13);
 
-    sArpOctave_.setBounds(95, 205, 50, 50);
-    lArpOctave_.setBounds(90, 258, 60, 14);
+    // Low Pass Filter
+    sLpfCutoff_.setBounds(706, 228, 52, 52);
+    lLpfCutoff_.setBounds(706, 280, 52, 13);
+    sLpfRes_.setBounds(786, 228, 52, 52);
+    lLpfRes_.setBounds(786, 280, 52, 13);
+    sLpfEnvAmt_.setBounds(866, 228, 52, 52);
+    lLpfEnvAmt_.setBounds(866, 280, 52, 13);
+    sLpfKeyTrack_.setBounds(946, 228, 52, 52);
+    lLpfKeyTrack_.setBounds(946, 280, 52, 13);
 
-    // 2. Step Sequencer (x: 195, y: 88, w: 155, h: 242)
-    bSeqEnabled_.setBounds(202, 110, 66, 22);
-    bSeqPlay_.setBounds(272, 110, 66, 22);
+    // --- Row 2: Envelopes, Poly Mod, Aftertouch ---
+    // Filter Envelope
+    sFiltAtt_.setBounds(56, 350, 42, 42);
+    lFiltAtt_.setBounds(56, 392, 42, 12);
+    sFiltDec_.setBounds(108, 350, 42, 42);
+    lFiltDec_.setBounds(108, 392, 42, 12);
+    sFiltSus_.setBounds(160, 350, 42, 42);
+    lFiltSus_.setBounds(160, 392, 42, 12);
+    sFiltRel_.setBounds(212, 350, 42, 42);
+    lFiltRel_.setBounds(212, 392, 42, 12);
+    adsrFilter_.setBounds(268, 344, 180, 62);
 
-    bSeqRecord_.setBounds(202, 138, 72, 22);
-    bSeqTie_.setBounds(202, 168, 64, 22);
-    bSeqRest_.setBounds(274, 168, 64, 22);
+    // Poly Mod
+    sPolyModFiltEnv_.setBounds(696, 344, 44, 44);
+    lPolyModFiltEnv_.setBounds(696, 388, 44, 12);
+    sPolyModOsc2_.setBounds(754, 344, 44, 44);
+    lPolyModOsc2_.setBounds(754, 388, 44, 12);
+    bPolyModFreq1_.setBounds(814, 342, 64, 18);
+    bPolyModShape1_.setBounds(814, 364, 64, 18);
+    bPolyModPW1_.setBounds(814, 386, 64, 18);
+    bPolyModLPF_.setBounds(888, 348, 56, 18);
+    bPolyModHPF_.setBounds(888, 376, 56, 18);
 
-    sSeqLength_.setBounds(205, 205, 50, 50);
-    lSeqLength_.setBounds(200, 258, 60, 14);
+    // Amplifier Envelope
+    bVelSens_.setBounds(52, 444, 76, 20);
+    sAmpAtt_.setBounds(136, 436, 42, 42);
+    lAmpAtt_.setBounds(136, 478, 42, 12);
+    sAmpDec_.setBounds(188, 436, 42, 42);
+    lAmpDec_.setBounds(188, 478, 42, 12);
+    sAmpSus_.setBounds(240, 436, 42, 42);
+    lAmpSus_.setBounds(240, 478, 42, 12);
+    sAmpRel_.setBounds(292, 436, 42, 42);
+    lAmpRel_.setBounds(292, 478, 42, 12);
+    adsrAmp_.setBounds(350, 430, 180, 62);
 
-    sSeqBpm_.setBounds(280, 205, 50, 50);
-    lSeqBpm_.setBounds(275, 258, 60, 14);
+    // Aftertouch Panel
+    sAftertouchAmt_.setBounds(696, 432, 44, 44);
+    lAftertouchAmt_.setBounds(696, 476, 44, 12);
+    bAtFreq1_.setBounds(754, 430, 60, 18);
+    bAtFreq2_.setBounds(754, 452, 60, 18);
+    bAtLfoAmt_.setBounds(754, 474, 64, 18);
+    bAtAmp_.setBounds(826, 430, 52, 18);
+    bAtLPF_.setBounds(826, 452, 52, 18);
+    bAtHPF_.setBounds(826, 474, 52, 18);
 
-    // 3. Poly Mod (x: 355, y: 88, w: 165, h: 242)
-    sPolyModFiltEnv_.setBounds(365, 110, 65, 65);
-    lPolyModFiltEnv_.setBounds(365, 176, 65, 14);
-    sPolyModOsc2_.setBounds(445, 110, 65, 65);
-    lPolyModOsc2_.setBounds(445, 176, 65, 14);
+    // --- Row 3: Effects, Oscilloscope, Misc, LFO, Distortion ---
+    // Effects Panel
+    bFxOn_.setBounds(52, 532, 64, 22);
+    cFx1Type_.setBounds(120, 532, 86, 22);
+    sFx1Mix_.setBounds(210, 520, 40, 40);
+    lFx1Mix_.setBounds(210, 560, 40, 12);
+    sFx1Param1_.setBounds(254, 520, 40, 40);
+    lFx1Param1_.setBounds(254, 560, 40, 12);
+    sFx1Param2_.setBounds(298, 520, 40, 40);
+    lFx1Param2_.setBounds(298, 560, 40, 12);
 
-    bPolyModFreq1_.setBounds(362, 200, 75, 20);
-    bPolyModShape1_.setBounds(362, 222, 75, 20);
-    bPolyModPW1_.setBounds(362, 244, 75, 20);
-    bPolyModLPF_.setBounds(445, 200, 70, 20);
-    bPolyModHPF_.setBounds(445, 222, 70, 20);
+    cFx2Type_.setBounds(346, 532, 86, 22);
+    sFx2Mix_.setBounds(436, 520, 40, 40);
+    lFx2Mix_.setBounds(436, 560, 40, 12);
+    sFx2Param1_.setBounds(480, 520, 40, 40);
+    lFx2Param1_.setBounds(480, 560, 40, 12);
+    sFx2Param2_.setBounds(524, 520, 40, 40);
+    lFx2Param2_.setBounds(524, 560, 40, 12);
 
-    // 4. Oscillators (x: 525, y: 88, w: 385, h: 242)
-    // Osc 1
-    sOsc1Freq_.setBounds(535, 110, 48, 48);
-    lOsc1Freq_.setBounds(535, 160, 48, 14);
-    sOsc1Shape_.setBounds(585, 110, 48, 48);
-    lOsc1Shape_.setBounds(585, 160, 48, 14);
-    sOsc1PW_.setBounds(635, 110, 48, 48);
-    lOsc1PW_.setBounds(635, 160, 48, 14);
-    sOsc1SubLevel_.setBounds(685, 110, 48, 48);
-    lOsc1SubLevel_.setBounds(685, 160, 48, 14);
-    bOsc1Sync_.setBounds(650, 185, 65, 20);
+    // Pre-FX Oscilloscope
+    oscilloscope_.setBounds(558, 514, 278, 68);
 
-    // Osc 2
-    sOsc2Freq_.setBounds(745, 110, 48, 48);
-    lOsc2Freq_.setBounds(745, 160, 48, 14);
-    sOsc2Fine_.setBounds(795, 110, 48, 48);
-    lOsc2Fine_.setBounds(795, 160, 48, 14);
-    sOsc2Shape_.setBounds(845, 110, 48, 48);
-    lOsc2Shape_.setBounds(845, 160, 48, 14);
-    sOsc2PW_.setBounds(745, 215, 48, 48);
-    lOsc2PW_.setBounds(745, 265, 48, 14);
-    bOsc2LowFreq_.setBounds(800, 220, 95, 20);
-    bOsc2KeyTrack_.setBounds(800, 245, 95, 20);
+    // Misc Parameters
+    sPanSpread_.setBounds(862, 520, 42, 42);
+    lPanSpread_.setBounds(862, 562, 42, 12);
+    sMasterVol_.setBounds(930, 520, 42, 42);
+    lMasterVol_.setBounds(930, 562, 42, 12);
 
-    // 5. Mixer (x: 915, y: 88, w: 135, h: 242)
-    sOsc1Level_.setBounds(955, 105, 52, 52);
-    lOsc1Level_.setBounds(955, 158, 52, 14);
-    sOsc2Level_.setBounds(955, 175, 52, 52);
-    lOsc2Level_.setBounds(955, 228, 52, 14);
-    sNoiseLevel_.setBounds(955, 245, 52, 52);
-    lNoiseLevel_.setBounds(955, 298, 52, 14);
+    // LFO Panel
+    sLfoFreq_.setBounds(56, 604, 42, 42);
+    lLfoFreq_.setBounds(56, 646, 42, 12);
+    cLfoShape_.setBounds(108, 616, 92, 22);
+    sLfoAmt_.setBounds(208, 604, 42, 42);
+    lLfoAmt_.setBounds(208, 646, 42, 12);
+    bLfoOsc1_.setBounds(262, 606, 56, 18);
+    bLfoOsc2_.setBounds(262, 630, 56, 18);
+    bLfoLpf_.setBounds(324, 606, 56, 18);
+    bLfoHpf_.setBounds(324, 630, 56, 18);
+    bLfoAmp_.setBounds(384, 618, 52, 18);
 
-    // 6. Low-Pass Filter (x: 50, y: 340, w: 225, h: 245)
-    sLpfCutoff_.setBounds(65, 365, 72, 72);
-    lLpfCutoff_.setBounds(65, 438, 72, 16);
-    sLpfRes_.setBounds(145, 365, 62, 62);
-    lLpfRes_.setBounds(145, 428, 62, 14);
-    sLpfEnvAmt_.setBounds(65, 475, 56, 56);
-    lLpfEnvAmt_.setBounds(65, 532, 56, 14);
-    sLpfKeyTrack_.setBounds(145, 475, 56, 56);
-    lLpfKeyTrack_.setBounds(145, 532, 56, 14);
+    // Distortion, Unison, Glide
+    sDistortion_.setBounds(700, 604, 44, 44);
+    lDistortion_.setBounds(700, 648, 44, 12);
+    sGlide_.setBounds(760, 604, 44, 44);
+    lGlide_.setBounds(760, 648, 44, 12);
+    bUnison_.setBounds(822, 614, 68, 22);
+    sUnisonDetune_.setBounds(896, 604, 44, 44);
+    lUnisonDetune_.setBounds(896, 648, 44, 12);
 
-    // 7. High-Pass Filter (x: 280, y: 340, w: 175, h: 245)
-    sHpfCutoff_.setBounds(295, 375, 60, 60);
-    lHpfCutoff_.setBounds(295, 436, 60, 14);
-    sHpfRes_.setBounds(375, 375, 60, 60);
-    lHpfRes_.setBounds(375, 436, 60, 14);
-    sHpfEnvAmt_.setBounds(335, 475, 56, 56);
-    lHpfEnvAmt_.setBounds(335, 532, 56, 14);
-
-    // 8. Filter Envelope (x: 460, y: 340, w: 220, h: 245)
-    sFiltAtt_.setBounds(470, 385, 46, 46);
-    lFiltAtt_.setBounds(470, 434, 46, 14);
-    sFiltDec_.setBounds(522, 385, 46, 46);
-    lFiltDec_.setBounds(522, 434, 46, 14);
-    sFiltSus_.setBounds(574, 385, 46, 46);
-    lFiltSus_.setBounds(574, 434, 46, 14);
-    sFiltRel_.setBounds(626, 385, 46, 46);
-    lFiltRel_.setBounds(626, 434, 46, 14);
-
-    // 9. Amplifier (x: 685, y: 340, w: 220, h: 245)
-    sAmpAtt_.setBounds(695, 385, 46, 46);
-    lAmpAtt_.setBounds(695, 434, 46, 14);
-    sAmpDec_.setBounds(747, 385, 46, 46);
-    lAmpDec_.setBounds(747, 434, 46, 14);
-    sAmpSus_.setBounds(799, 385, 46, 46);
-    lAmpSus_.setBounds(799, 434, 46, 14);
-    sAmpRel_.setBounds(851, 385, 46, 46);
-    lAmpRel_.setBounds(851, 434, 46, 14);
-    bVelSens_.setBounds(745, 480, 100, 24);
-
-    // 10. LFO (x: 910, y: 340, w: 140, h: 245)
-    sLfoFreq_.setBounds(920, 365, 50, 50);
-    lLfoFreq_.setBounds(920, 416, 50, 14);
-    sLfoAmt_.setBounds(980, 365, 50, 50);
-    lLfoAmt_.setBounds(980, 416, 50, 14);
-    cLfoShape_.setBounds(925, 440, 110, 22);
-
-    bLfoOsc1_.setBounds(925, 475, 60, 18);
-    bLfoOsc2_.setBounds(985, 475, 60, 18);
-    bLfoLpf_.setBounds(925, 498, 55, 18);
-    bLfoHpf_.setBounds(985, 498, 55, 18);
-    bLfoAmp_.setBounds(955, 521, 55, 18);
-
-    // 11. Effects Section (Phase 4)
-    bFxOn_.setBounds(65, 638, 90, 26);
-
-    // Effects 1 (FX A)
-    cFx1Type_.setBounds(195, 638, 120, 24);
-    sFx1Param1_.setBounds(330, 615, 50, 50);
-    lFx1Param1_.setBounds(330, 668, 50, 14);
-    sFx1Param2_.setBounds(420, 615, 50, 50);
-    lFx1Param2_.setBounds(420, 668, 50, 14);
-    sFx1Mix_.setBounds(510, 615, 50, 50);
-    lFx1Mix_.setBounds(510, 668, 50, 14);
-
-    // Effects 2 (FX B)
-    cFx2Type_.setBounds(635, 638, 120, 24);
-    sFx2Param1_.setBounds(770, 615, 50, 50);
-    lFx2Param1_.setBounds(770, 668, 50, 14);
-    sFx2Param2_.setBounds(860, 615, 50, 50);
-    lFx2Param2_.setBounds(860, 668, 50, 14);
-    sFx2Mix_.setBounds(950, 615, 50, 50);
-    lFx2Mix_.setBounds(950, 668, 50, 14);
+    // --- Row 4: Performance Wheels & Virtual Keyboard Strip ---
+    performanceWheels_.setBounds(44, 672, 160, 142);
+    keyboardComponent_.setBounds(208, 672, 948, 142);
 }
 
 } // namespace prophet6

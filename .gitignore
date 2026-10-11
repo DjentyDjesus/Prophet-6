@@ -22,6 +22,11 @@ compile_commands.json
 *.lib
 *.vst3/
 *.vst3
+*.zip
+*.dmg
+staging/
+package_root/
+dmg_root/
 
 # Secrets and environment configs
 .env*

@@ -13,6 +13,8 @@
 #include <cstdint>
 #include <cstddef>
 #include <algorithm>
+#include <atomic>
+#include <array>
 
 namespace prophet6 {
 
@@ -167,6 +169,12 @@ public:
         // Apply master analog distortion
         distortion_.process(outL, outR, params_.distortion);
 
+        // Pre-FX circular tap: audio after voice bus + distortion, before digital effects
+        const size_t wIdx = preFxWritePos_.load(std::memory_order_relaxed);
+        preFxBufferL_[wIdx] = outL;
+        preFxBufferR_[wIdx] = outR;
+        preFxWritePos_.store((wIdx + 1) % PRE_FX_BUFFER_SIZE, std::memory_order_release);
+
         // Apply dual digital stereo effects directly after master distortion
         if (params_.fxOn) {
             effects_.processSample(outL, outR, params_);
@@ -225,6 +233,29 @@ public:
         return voiceManager_.getActiveVoiceCount();
     }
 
+    // --- Pre-FX Tap & Oscilloscope Inspection ---
+    static constexpr size_t PRE_FX_BUFFER_SIZE = 2048;
+
+    // Copy recent pre-FX samples (mixed down to mono) into dest buffer
+    void copyRecentPreFx(float* dest, size_t count) const noexcept {
+        if (!dest || count == 0) return;
+        const size_t readHead = preFxWritePos_.load(std::memory_order_acquire);
+        const size_t n = std::min(count, PRE_FX_BUFFER_SIZE);
+        size_t srcIdx = (readHead + PRE_FX_BUFFER_SIZE - n) % PRE_FX_BUFFER_SIZE;
+        for (size_t i = 0; i < n; ++i) {
+            dest[i] = 0.5f * (preFxBufferL_[srcIdx] + preFxBufferR_[srcIdx]);
+            srcIdx = (srcIdx + 1) % PRE_FX_BUFFER_SIZE;
+        }
+    }
+
+    [[nodiscard]] float getLowestActiveNoteFreq() const noexcept {
+        return voiceManager_.getLowestActiveNoteFreq();
+    }
+
+    [[nodiscard]] float getSampleRate() const noexcept {
+        return sampleRate_;
+    }
+
 private:
     float sampleRate_ = DEFAULT_SAMPLE_RATE;
     SynthParameters params_{};
@@ -237,6 +268,11 @@ private:
 
     float pitchBendNorm_ = 0.0f;
     float modWheelNorm_ = 0.0f;
+
+    // Lock-free pre-effects circular audio tap
+    std::array<float, PRE_FX_BUFFER_SIZE> preFxBufferL_{};
+    std::array<float, PRE_FX_BUFFER_SIZE> preFxBufferR_{};
+    std::atomic<size_t> preFxWritePos_{0};
 };
 
 } // namespace prophet6
