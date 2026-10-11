@@ -1,0 +1,41 @@
+# Build and binary directories
+build/
+bin/
+out/
+.cache/
+compile_commands.json
+
+# Rendered audio and test sweeps
+*.wav
+*.aif
+*.flac
+*.syx
+*.p6bank
+*.p6prog
+
+# Compiled binaries, libraries & VSTs
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+*.vst3/
+*.vst3
+
+# Secrets and environment configs
+.env*
+*.key
+*.pem
+*.token
+*credential*
+
+# IDE and temporary files
+.vscode/
+.idea/
+*.suo
+*.user
+*.ninja_deps
+*.ninja_log
+CMakeCache.txt
+CMakeFiles/

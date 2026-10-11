@@ -1,0 +1,83 @@
+name: CI / Build & Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Windows C++20 Build & DSP Test
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up MSVC Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Set up Ninja
+        uses: ashutoshvarma/setup-ninja@v1.1
+        with:
+          version: 1.11.1
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build DSP Verification Suite
+        run: |
+          cmake --build build --config Release --target dsp_verification
+
+      - name: Run DSP Verification Suite
+        run: |
+          if (Test-Path "build/tests/dsp_verification.exe") {
+            .\build\tests\dsp_verification.exe
+          } elseif (Test-Path "build/tests/Release/dsp_verification.exe") {
+            .\build\tests\Release\dsp_verification.exe
+          } else {
+            Write-Error "dsp_verification.exe not found!"
+            exit 1
+          }
+
+      - name: Build Standalone and VST3 Plugins
+        run: |
+          cmake --build build --config Release --target Prophet6_Standalone Prophet6_VST3
+
+      - name: Stage Artifacts for Upload
+        run: |
+          New-Item -ItemType Directory -Path staging -Force
+          $exe = Get-ChildItem -Path build -Recurse -Filter "Prophet-6.exe" | Select-Object -First 1
+          if ($exe) {
+            Copy-Item -Path $exe.FullName -Destination staging/ -Force
+            Write-Host "Staged: $($exe.FullName)"
+          } else {
+            Write-Error "Prophet-6.exe not found!"
+            exit 1
+          }
+
+          $vst3 = Get-ChildItem -Path build -Recurse -Filter "Prophet-6.vst3" | Where-Object { $_.PSIsContainer } | Select-Object -First 1
+          if ($vst3) {
+            Copy-Item -Path $vst3.FullName -Destination staging/ -Recurse -Force
+            Write-Host "Staged VST3 bundle: $($vst3.FullName)"
+          } else {
+            Write-Error "Prophet-6.vst3 bundle not found!"
+            exit 1
+          }
+
+      - name: Upload Plugin Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Prophet-6-Windows-Release
+          path: staging/
+          if-no-files-found: error
+          retention-days: 14
