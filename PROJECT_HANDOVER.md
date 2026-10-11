@@ -151,6 +151,7 @@
 | Release Workflow | `.github/workflows/release.yml` | Multi-Platform v1.1 Release |
 | Windows Release Zip | `Prophet-6-v1.1-Windows.zip` | Standalone .exe + .vst3 |
 | macOS Release DMG | `Prophet-6-v1.1-macOS.dmg` | Universal Binary Standalone .app + .vst3 |
+| GitHub Release v1.1 | [`v1.1 Release`](https://github.com/DjentyDjesus/Prophet-6/releases/tag/v1.1) | Published Live with Assets |
 
 ---
 
