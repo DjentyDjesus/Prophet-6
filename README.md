@@ -3,11 +3,11 @@
 [![CI / Build & Test](https://github.com/DjentyDjesus/Prophet-6/actions/workflows/ci.yml/badge.svg)](https://github.com/DjentyDjesus/Prophet-6/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![C++20](https://img.shields.io/badge/Standard-C%2B%2B20-blue.svg)](https://en.cppreference.com/w/cpp/20)
-[![JUCE 7](https://img.shields.io/badge/Framework-JUCE%207.0.12-orange.svg)](https://juce.com/)
+[![JUCE 8](https://img.shields.io/badge/Framework-JUCE%208.0.6-orange.svg)](https://juce.com/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20x64%20%7C%20macOS%20Universal-lightgrey.svg)]()
 [![Artifacts](https://img.shields.io/badge/Release%20Artifacts-EXE%20%7C%20DMG%20%7C%20VST3-green.svg)]()
 
-A modern, high-fidelity virtual analog polyphonic software synthesizer inspired by the iconic **Sequential Prophet-6** designed by Dave Smith. Built with pure modern C++20 DSP algorithms, zero runtime allocations on the audio thread, and a photorealistic JUCE 7 desktop front-panel GUI.
+A modern, high-fidelity virtual analog polyphonic software synthesizer inspired by the iconic **Sequential Prophet-6** designed by Dave Smith. Built with pure modern C++20 DSP algorithms, zero runtime allocations on the audio thread, and a photorealistic JUCE 8 desktop front-panel GUI.
 
 ---
 
@@ -139,7 +139,7 @@ Download the latest automated builds directly from the [GitHub Actions Artifacts
 * **C++ Compiler:** Supporting C++20 (`MSVC 2019/2022`, `Apple Clang 15+`, or `GCC 12+`)
 * **Build System:** `Ninja` (recommended) or Visual Studio / Xcode
 
-JUCE 7.0.12 is automatically fetched via CMake `FetchContent` during the configuration step.
+JUCE 8.0.6 is automatically fetched via CMake `FetchContent` during the configuration step.
 
 ### Windows (Visual Studio / Ninja)
 
