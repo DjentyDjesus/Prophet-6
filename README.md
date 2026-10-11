@@ -4,7 +4,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![C++20](https://img.shields.io/badge/Standard-C%2B%2B20-blue.svg)](https://en.cppreference.com/w/cpp/20)
 [![JUCE 7](https://img.shields.io/badge/Framework-JUCE%207.0.12-orange.svg)](https://juce.com/)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20x64%20(Standalone%20%7C%20VST3)-lightgrey.svg)]()
+[![Platform](https://img.shields.io/badge/Platform-Windows%20x64%20%7C%20macOS%20Universal-lightgrey.svg)]()
+[![Artifacts](https://img.shields.io/badge/Release%20Artifacts-EXE%20%7C%20DMG%20%7C%20VST3-green.svg)]()
 
 A modern, high-fidelity virtual analog polyphonic software synthesizer inspired by the iconic **Sequential Prophet-6** designed by Dave Smith. Built with pure modern C++20 DSP algorithms, zero runtime allocations on the audio thread, and a photorealistic JUCE 7 desktop front-panel GUI.
 
@@ -116,12 +117,27 @@ A modern, high-fidelity virtual analog polyphonic software synthesizer inspired 
 
 ---
 
+## Pre-built Releases & CI Artifacts
+
+Pre-compiled production binaries are automatically generated and tested on every push via our GitHub Actions CI/CD matrix:
+
+* **Windows (x64):**
+  * `Prophet-6-Windows-EXE`: Standalone executable (`Prophet-6.exe`)
+  * `Prophet-6-Windows-VST3`: VST3 plugin bundle (`Prophet-6.vst3`)
+  * `Prophet-6-Windows-x64-Package`: Combined EXE and VST3 distribution package
+* **macOS (Universal / Apple Silicon & Intel):**
+  * `Prophet-6-macOS-DMG`: Mountable disk image (`Prophet-6-macOS.dmg`) containing `Prophet-6.app`, `Prophet-6.vst3`, and a drag-and-drop link to `/Applications`.
+
+Download the latest automated builds directly from the [GitHub Actions Artifacts tab](https://github.com/DjentyDjesus/Prophet-6/actions).
+
+---
+
 ## Building from Source
 
 ### Prerequisites
 * **CMake:** Version 3.20 or newer
-* **C++ Compiler:** Supporting C++20 (`MSVC 2019/2022`, `Clang 15+`, or `GCC 12+`)
-* **Build System:** `Ninja` (recommended) or Visual Studio
+* **C++ Compiler:** Supporting C++20 (`MSVC 2019/2022`, `Apple Clang 15+`, or `GCC 12+`)
+* **Build System:** `Ninja` (recommended) or Visual Studio / Xcode
 
 JUCE 7.0.12 is automatically fetched via CMake `FetchContent` during the configuration step.
 
@@ -135,19 +151,48 @@ cd Prophet-6
 # Configure the project with C++20 Release mode
 cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
 
-# Build the DSP verification test suite
+# Build and run the DSP verification test suite
 cmake --build build --config Release --target dsp_verification
-
-# Run offline audio and latency verification tests
 .\build\tests\dsp_verification.exe
 
 # Build the Standalone executable and VST3 plugin
 cmake --build build --config Release --target Prophet6_Standalone Prophet6_VST3
 ```
 
-Compiled binaries will be available in:
+Compiled Windows binaries will be available in:
 * **Standalone:** `build/targets/desktop/Prophet6_artefacts/Release/Standalone/Prophet-6.exe`
 * **VST3 Plugin:** `build/targets/desktop/Prophet6_artefacts/Release/VST3/Prophet-6.vst3`
+
+### macOS (Clang / Ninja)
+
+```bash
+# Clone the repository
+git clone https://github.com/DjentyDjesus/Prophet-6.git
+cd Prophet-6
+
+# Configure the project with C++20 Release mode
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+# Build and run the DSP verification test suite
+cmake --build build --config Release --target dsp_verification
+./build/tests/dsp_verification
+
+# Build the Standalone App and VST3 plugin
+cmake --build build --config Release --target Prophet6_Standalone Prophet6_VST3
+```
+
+Compiled macOS bundles will be located in:
+* **Standalone:** `build/targets/desktop/Prophet6_artefacts/Release/Standalone/Prophet-6.app`
+* **VST3 Plugin:** `build/targets/desktop/Prophet6_artefacts/Release/VST3/Prophet-6.vst3`
+
+To package a `.dmg` installer locally on macOS:
+```bash
+mkdir -p dmg_root
+cp -R build/targets/desktop/Prophet6_artefacts/Release/Standalone/Prophet-6.app dmg_root/
+cp -R build/targets/desktop/Prophet6_artefacts/Release/VST3/Prophet-6.vst3 dmg_root/
+ln -s /Applications dmg_root/Applications
+hdiutil create -volname "Prophet-6" -srcfolder dmg_root -ov -format UDZO Prophet-6-macOS.dmg
+```
 
 ---
 

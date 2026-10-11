@@ -338,10 +338,36 @@ std::array<Preset, 100> createAllFactoryPresets() {
         bank[30] = p;
     }
     {
-        auto p = makeBase(31, "031: Funk Wurly", PresetCategory::Keys);
-        p.params.osc1Shape = 0.3f; p.params.osc2Shape = 0.7f; p.params.osc2PulseWidth = 0.4f;
-        p.params.lpfCutoff = 2800.0f; p.params.lpfResonance = 0.3f; p.params.lpfEnvAmount = 0.5f;
-        p.params.distortion = 0.3f;
+        auto p = makeBase(31, "031: Kid A Right Place", PresetCategory::Keys);
+        p.params.osc1Shape = 0.85f; // Pulse / Square
+        p.params.osc1PulseWidth = 0.50f;
+        p.params.osc1Level = 0.70f;
+        p.params.osc1SubLevel = 0.20f; // Triangle sub-oscillator body
+        p.params.osc2Shape = 0.20f; // Triangle/Saw morph
+        p.params.osc2FineTune = 0.04f;
+        p.params.osc2Level = 0.55f;
+        p.params.lpfCutoff = 950.0f; // Warm woody EP cutoff
+        p.params.lpfResonance = 0.18f;
+        p.params.lpfEnvAmount = 0.35f;
+        p.params.lpfKbdTrack = 1.0f; // 100% Key Tracking
+        p.params.lpfVelocityAmount = 0.75f; // Dynamic touch response
+        p.params.filtAttack = 0.002f;
+        p.params.filtDecay = 1.35f;
+        p.params.filtSustain = 0.22f;
+        p.params.filtRelease = 0.45f;
+        p.params.ampAttack = 0.002f;
+        p.params.ampDecay = 2.10f;
+        p.params.ampSustain = 0.50f;
+        p.params.ampRelease = 0.45f;
+        p.params.ampVelocityAmount = 0.65f;
+        p.params.slop = 0.40f; // Vintage Prophet-5 drift
+        p.params.distortion = 0.12f; // Analog console drive
+        p.params.panSpread = 0.35f;
+        p.params.fxOn = true;
+        p.params.fx1Type = 7; // Plate Reverb
+        p.params.fx1Param1 = 0.35f;
+        p.params.fx1Param2 = 0.40f;
+        p.params.fx1Mix = 0.22f;
         bank[31] = p;
     }
     {

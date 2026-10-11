@@ -39,3 +39,6 @@ compile_commands.json
 *.ninja_log
 CMakeCache.txt
 CMakeFiles/
+
+# Local references
+prop6 ref.png

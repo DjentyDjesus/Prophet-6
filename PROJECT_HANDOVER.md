@@ -115,6 +115,21 @@
     * Single-sample latency: **809.24 ns / sample** (**28.02x faster than real-time**) with 6 active voices + Dual FX active.
     * Target: < 2000 ns / sample (**PASSED**).
 
+### Phase 7: Cross-Platform CI/CD Packaging (Windows EXE & macOS DMG) ✅
+* **Status:** Complete & Published to GitHub.
+* **CI/CD Pipeline (`.github/workflows/ci.yml`):**
+  * **Windows Job (`windows-latest`):**
+    - Environment: MSVC Developer Command Prompt + Ninja.
+    - DSP Verification: Builds and executes `dsp_verification.exe` across 15 automated test sweeps.
+    - Targets: `Prophet6_Standalone` (`Prophet-6.exe`) and `Prophet6_VST3` (`Prophet-6.vst3`).
+    - Release Artifacts: `Prophet-6-Windows-EXE`, `Prophet-6-Windows-VST3`, and `Prophet-6-Windows-x64-Package`.
+  * **macOS Job (`macos-latest`):**
+    - Environment: Apple Clang + Ninja.
+    - DSP Verification: Builds and executes `dsp_verification` audio test suite.
+    - Targets: `Prophet6_Standalone` (`Prophet-6.app`) and `Prophet6_VST3` (`Prophet-6.vst3`).
+    - Packaging: Mountable Apple Disk Image (`Prophet-6-macOS.dmg`) created via native macOS `hdiutil` with drag-and-drop symlink to `/Applications`.
+    - Release Artifact: `Prophet-6-macOS-DMG`.
+
 ---
 
 ## 3. Verified Artifacts & Delivery
@@ -124,6 +139,9 @@
 | Desktop Standalone Executable | `bin/Prophet-6.exe` (9.87 MB) | Built & Verified |
 | VST3 Plugin Bundle | `bin/Prophet-6.vst3` (8.36 MB) | Built & Verified |
 | Offline DSP Verification Suite | `build/tests/dsp_verification.exe` | 15/15 Tests Passed |
+| GitHub Actions Windows EXE | `Prophet-6-Windows-EXE` | Automated CI Artifact |
+| GitHub Actions Windows VST3 | `Prophet-6-Windows-VST3` | Automated CI Artifact |
+| GitHub Actions macOS DMG | `Prophet-6-macOS-DMG` | Automated CI Artifact |
 | SysEx Roundtrip WAV | `test_sysex_roundtrip.wav` | 3.5s Bit-Exact SysEx Audio Verification |
 | User Bank Persistence WAV | `test_user_bank_persistence.wav` | 3.0s User Patch 105 Persistence Audio Verification |
 | Preset Recall WAV | `test_preset_recall.wav` | 6.0s Multi-Patch Audio Progression |

@@ -1,4 +1,4 @@
-name: CI / Build & Test
+name: CI / Build & Release Packaging
 
 on:
   push:
@@ -11,8 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
-    name: Windows C++20 Build & DSP Test
+  build-windows:
+    name: Windows (EXE Standalone & VST3)
     runs-on: windows-latest
 
     steps:
@@ -53,13 +53,13 @@ jobs:
         run: |
           cmake --build build --config Release --target Prophet6_Standalone Prophet6_VST3
 
-      - name: Stage Artifacts for Upload
+      - name: Stage Windows Artifacts (.exe & .vst3)
         run: |
           New-Item -ItemType Directory -Path staging -Force
           $exe = Get-ChildItem -Path build -Recurse -Filter "Prophet-6.exe" | Select-Object -First 1
           if ($exe) {
             Copy-Item -Path $exe.FullName -Destination staging/ -Force
-            Write-Host "Staged: $($exe.FullName)"
+            Write-Host "Staged EXE: $($exe.FullName)"
           } else {
             Write-Error "Prophet-6.exe not found!"
             exit 1
@@ -74,10 +74,109 @@ jobs:
             exit 1
           }
 
-      - name: Upload Plugin Artifacts
+      - name: Upload Windows Standalone EXE Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Prophet-6-Windows-Release
+          name: Prophet-6-Windows-EXE
+          path: staging/Prophet-6.exe
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload Windows VST3 Plugin Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Prophet-6-Windows-VST3
+          path: staging/Prophet-6.vst3
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload Windows Full Package (EXE & VST3)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Prophet-6-Windows-x64-Package
           path: staging/
+          if-no-files-found: error
+          retention-days: 14
+
+  build-macos:
+    name: macOS (DMG Installer & VST3)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Verify Ninja
+        run: |
+          which ninja || brew install ninja
+          ninja --version
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build DSP Verification Suite
+        run: |
+          cmake --build build --config Release --target dsp_verification
+
+      - name: Run DSP Verification Suite
+        run: |
+          if [ -f "build/tests/dsp_verification" ]; then
+            ./build/tests/dsp_verification
+          elif [ -f "build/tests/Release/dsp_verification" ]; then
+            ./build/tests/Release/dsp_verification
+          else
+            echo "Searching for dsp_verification executable..."
+            BIN=$(find build -name "dsp_verification" -type f | head -n 1)
+            chmod +x "$BIN"
+            "$BIN"
+          fi
+
+      - name: Build Standalone App and VST3 Plugin
+        run: |
+          cmake --build build --config Release --target Prophet6_Standalone Prophet6_VST3
+
+      - name: Create macOS DMG Installer
+        run: |
+          mkdir -p dmg_root
+          mkdir -p staging
+
+          # Copy Standalone .app and .vst3 bundle into dmg_root
+          APP_PATH=$(find build -name "Prophet-6.app" -type d | head -n 1)
+          VST3_PATH=$(find build -name "Prophet-6.vst3" -type d | head -n 1)
+
+          if [ -d "$APP_PATH" ]; then
+            cp -R "$APP_PATH" dmg_root/
+            echo "Added $APP_PATH to DMG root"
+          else
+            echo "Error: Prophet-6.app not found!"
+            find build -maxdepth 5
+            exit 1
+          fi
+
+          if [ -d "$VST3_PATH" ]; then
+            cp -R "$VST3_PATH" dmg_root/
+            echo "Added $VST3_PATH to DMG root"
+          else
+            echo "Error: Prophet-6.vst3 not found!"
+            find build -maxdepth 5
+            exit 1
+          fi
+
+          # Add link to Applications for drag-and-drop installation
+          ln -s /Applications dmg_root/Applications
+
+          # Create DMG using native macOS hdiutil
+          hdiutil create -volname "Prophet-6" -srcfolder dmg_root -ov -format UDZO staging/Prophet-6-macOS.dmg
+          echo "Created staging/Prophet-6-macOS.dmg successfully"
+
+      - name: Upload macOS DMG Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Prophet-6-macOS-DMG
+          path: staging/Prophet-6-macOS.dmg
           if-no-files-found: error
           retention-days: 14
