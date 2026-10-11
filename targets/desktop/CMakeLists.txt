@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(Prophet6_Plugin VERSION 1.0.0 LANGUAGES CXX)
+project(Prophet6_Plugin VERSION 1.0.0 LANGUAGES C CXX)
 
 # Fetch JUCE framework
 include(FetchContent)
@@ -13,6 +13,7 @@ FetchContent_MakeAvailable(JUCE)
 
 juce_add_plugin(Prophet6
     COMPANY_NAME "Dave Smith / Sequential Tribute"
+    BUNDLE_ID "com.dsi.prophet6"
     IS_SYNTH TRUE
     NEEDS_MIDI_INPUT TRUE
     NEEDS_MIDI_OUTPUT FALSE
