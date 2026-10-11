@@ -2,8 +2,9 @@
 
 > **Session Timestamp:** October 11, 2026  
 > **Project Directory:** `C:\Users\sriha\Documents\Antigrav\Prophet6\`  
+> **GitHub Repository:** [`https://github.com/DjentyDjesus/Prophet-6`](https://github.com/DjentyDjesus/Prophet-6)  
 > **Master Architecture:** [`PROPHET_6_ARCHITECTURE_PLAN.md`](./PROPHET_6_ARCHITECTURE_PLAN.md)  
-> **Current Progress:** Phases 1 through 6 Complete ✅ | Hardware SysEx Librarian, User Bank Storage & Hardware Workflow Delivered
+> **Current Progress:** Phases 1 through 6 Complete ✅ | CI/CD Workflow & Public GitHub Publication Live
 
 ---
 
